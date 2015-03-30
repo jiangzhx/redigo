@@ -402,6 +402,59 @@ func (c *conn) Receive() (reply interface{}, err error) {
 	return
 }
 
+
+func (c *conn) DoWithOutParse(cmd string, args ...interface{}) (interface{}, error) {
+	c.mu.Lock()
+	pending := c.pending
+	c.pending = 0
+	c.mu.Unlock()
+
+	if cmd == "" && pending == 0 {
+		return nil, nil
+	}
+
+	if c.writeTimeout != 0 {
+		c.conn.SetWriteDeadline(time.Now().Add(c.writeTimeout))
+	}
+
+	if cmd != "" {
+		c.writeCommand(cmd, args)
+	}
+
+	if err := c.bw.Flush(); err != nil {
+		return nil, c.fatal(err)
+	}
+
+	if c.readTimeout != 0 {
+		c.conn.SetReadDeadline(time.Now().Add(c.readTimeout))
+	}
+
+	if cmd == "" {
+		reply := make([]interface{}, pending)
+		for i := range reply {
+			r, e := c.readReply()
+			if e != nil {
+				return nil, c.fatal(e)
+			}
+			reply[i] = r
+		}
+		return reply, nil
+	}
+
+	var err error
+	var reply interface{}
+	for i := 0; i <= pending; i++ {
+		var e error
+		if reply, e = c.readLine(); e != nil {
+			return nil, c.fatal(e)
+		}
+		if e, ok := reply.(Error); ok && err == nil {
+			err = e
+		}
+	}
+	return reply, err
+}
+
 func (c *conn) Do(cmd string, args ...interface{}) (interface{}, error) {
 	c.mu.Lock()
 	pending := c.pending

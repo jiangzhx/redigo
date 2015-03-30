@@ -382,6 +382,9 @@ func (pc *pooledConnection) Receive() (reply interface{}, err error) {
 type errorConnection struct{ err error }
 
 func (ec errorConnection) Do(string, ...interface{}) (interface{}, error) { return nil, ec.err }
+func (ec errorConnection) DoWithOutParse(commandName string, args ...interface{}) (reply interface{}, err error) {
+	return nil, ec.err
+}
 func (ec errorConnection) Send(string, ...interface{}) error              { return ec.err }
 func (ec errorConnection) Err() error                                     { return ec.err }
 func (ec errorConnection) Close() error                                   { return ec.err }

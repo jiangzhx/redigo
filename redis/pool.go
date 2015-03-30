@@ -368,7 +368,7 @@ func (pc *pooledConnection) Do(commandName string, args ...interface{}) (reply i
 func (pc *pooledConnection) DoWithOutParse(commandName string, args ...interface{}) (reply interface{}, err error) {
 	ci := internal.LookupCommandInfo(commandName)
 	pc.state = (pc.state | ci.Set) &^ ci.Clear
-	return pc.c.Do(commandName, args...)
+	return pc.c.DoWithOutParse(commandName, args...)
 }
 
 func (pc *pooledConnection) Send(commandName string, args ...interface{}) error {
